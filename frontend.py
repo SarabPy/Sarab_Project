@@ -21,7 +21,7 @@ with st.form("user_data_form"):
             "nid": nid
         }
         
-        response = requests.post("https://sarab.onrender.com/process-data/", json=data) #192.168.1.130 or localhost:8000
+        response = requests.post("https://sarab-project.onrender.com/process-data/", json=data) #192.168.1.130 or localhost:8000
         if response.status_code == 200:
             result_data = response.json()
             st.success("Data Processed Successfully!")
