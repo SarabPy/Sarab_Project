@@ -2047,7 +2047,7 @@ def classify_type(name):
     
     if any(keyword in name for keyword in company_keywords):
         return 'Company'
-    elif name_gender_dict.get(name, 'Unknown') != 'Unknown':
+    elif any(keyword in name for keyword in name_gender_dict):
         return 'Person'
     else :
         return 'Unknown'
