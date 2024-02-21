@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-
+import sqlite3
 
 app = FastAPI()
 origins = ['*']
@@ -23,11 +23,45 @@ class InputData(BaseModel):
 
 class OutputData(BaseModel):
     gender: str = "Placeholder Gender"
-    birth_year: int = "Placeholder Birth_year"
+    birth_year: str = "Placeholder Birth_year"
     country: str = "Placeholder Country"
     type: str = "Placeholder Type"
     class_: str = "Placeholder Class"
     anomaly: bool = "Placeholder Anomaly"
+
+# ######################################################################
+# # Initialize SQLite database connection
+# conn = sqlite3.connect('database.db')
+# cursor = conn.cursor()
+
+# # Create input and output tables in the database
+# cursor.execute('''
+#     CREATE TABLE IF NOT EXISTS input_data (
+#         id INTEGER PRIMARY KEY,
+#         name TEXT,
+#         email TEXT,
+#         phone TEXT,
+#         transfer_limit INTEGER,
+#         nid TEXT
+#     )
+# ''')
+
+# cursor.execute('''
+#     CREATE TABLE IF NOT EXISTS output_data (
+#         id INTEGER PRIMARY KEY,
+#         gender TEXT,
+#         type TEXT,
+#         birth_year TEXT,
+#         country TEXT,
+#         class_ TEXT,
+#         anomaly INTEGER
+#     )
+# ''')
+
+# # Close cursor and commit changes to the database
+# cursor.close()
+# conn.commit()
+# ######################################################################
 
 name_gender_dict = {
   'محمد': 'male',
@@ -1962,14 +1996,29 @@ phone_to_country = {
 }
 
 # Function to determine the country based on phone number
-def determine_country(phone):
-    if phone == None :
-        return "unknown"  # Leave country empty if phone is empty or invalid
+def determine_country(nid, phone):
+    if nid and len(nid) == 12:
+        return "Libya"
+
+    if not phone:
+        return "Unknown"  # Leave country empty if phone is empty
+
     phone_str = str(int(phone))  # Convert phone number to string for prefix matching
-    for prefix, country in phone_to_country.items():
+
+    # Directly matching specific Libyan phone prefixes
+    if phone_str.startswith(("91", "92")) and len(phone_str) == 9:
+        return "Libya"
+
+    # Set of phone prefixes for faster lookup
+    phone_prefixes = set(phone_to_country.keys())
+
+    # Iterate through prefixes and return the country if there is a match
+    for prefix in phone_prefixes:
         if phone_str.startswith(prefix):
-            return country
+            return phone_to_country[prefix]
+
     return "Unknown"  # Return 'Unknown' for unmatched prefixes
+
     
 def classify_type(name):
     if name is None or not isinstance(name, str):  
@@ -1998,8 +2047,10 @@ def classify_type(name):
     
     if any(keyword in name for keyword in company_keywords):
         return 'Company'
-    else:
+    elif name_gender_dict.get(name, 'Unknown') != 'Unknown':
         return 'Person'
+    else :
+        return 'Unknown'
 
 def classify_gender(name: str, nid: str, type_: str) -> str:
     if nid and type_ == 'Person':
@@ -2040,13 +2091,23 @@ def check_for_anomalies(input_data: InputData) -> bool:
 
 @app.post("/process-data/", response_model=OutputData)
 async def process_data(input_data: InputData):
+    # conn = sqlite3.connect('database.db')
+    # cursor = conn.cursor()
+
+    # # Insert input data into the input_data table
+    # cursor.execute('''
+    #     INSERT INTO input_data (name, email, phone, transfer_limit, nid)
+    #     VALUES (?, ?, ?, ?, ?)
+    # ''', (input_data.name, input_data.email, input_data.phone, input_data.transfer_limit, input_data.nid))
+
+    # conn.commit()
     # Classify type based on name
     type_ = classify_type(input_data.name)
     
     # Classify gender based on NID, type, or name
     gender = classify_gender(input_data.name, input_data.nid, type_)
     
-    country = determine_country(input_data.phone)
+    country = determine_country(input_data.nid,input_data.phone)
     
     birth_year = classify_birth_year(input_data.nid)
 
@@ -2056,6 +2117,16 @@ async def process_data(input_data: InputData):
     # Detect anomalies in the input data
     if check_for_anomalies(input_data):
         anomaly_detected = True
+
+    # # Insert output data into the output_data table
+    # cursor.execute('''
+    #     INSERT INTO output_data (gender, type, birth_year, country, class_, anomaly)
+    #     VALUES (?, ?, ?, ?, ?, ?)
+    # ''', (gender, type_, birth_year, country, financial_class, anomaly_detected))
+
+    # conn.commit()
+    # cursor.close()
+    # conn.close()
 
     return OutputData(
         gender=gender,
