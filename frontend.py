@@ -20,12 +20,12 @@ with st.form("user_data_form"):
             "transfer_limit": transfer_limit,
             "nid": nid
         }
+        headers = {'x-password': 'c2eab9ef017e81b9e2799f44824b7974697f72919d14dca6b4e68e8a7a6f5195'}
         
-        response = requests.post("https://sarab-project.onrender.com/process-data/", json=data) #192.168.1.130 or localhost:8000
+        response = requests.post("https://sarab-project.onrender.com/process-data/", json=data, headers=headers)
         if response.status_code == 200:
             result_data = response.json()
             st.success("Data Processed Successfully!")
             st.write(result_data)
         else:
-            st.error("An error occurred.")
-
+            st.error(f"An error occurred: {response.json()}")

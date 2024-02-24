@@ -1,18 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import sqlite3
-
 app = FastAPI()
-origins = ['*']
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 class InputData(BaseModel):
     name: str
@@ -29,39 +19,6 @@ class OutputData(BaseModel):
     class_: str = "Placeholder Class"
     anomaly: bool = "Placeholder Anomaly"
 
-# ######################################################################
-# # Initialize SQLite database connection
-# conn = sqlite3.connect('database.db')
-# cursor = conn.cursor()
-
-# # Create input and output tables in the database
-# cursor.execute('''
-#     CREATE TABLE IF NOT EXISTS input_data (
-#         id INTEGER PRIMARY KEY,
-#         name TEXT,
-#         email TEXT,
-#         phone TEXT,
-#         transfer_limit INTEGER,
-#         nid TEXT
-#     )
-# ''')
-
-# cursor.execute('''
-#     CREATE TABLE IF NOT EXISTS output_data (
-#         id INTEGER PRIMARY KEY,
-#         gender TEXT,
-#         type TEXT,
-#         birth_year TEXT,
-#         country TEXT,
-#         class_ TEXT,
-#         anomaly INTEGER
-#     )
-# ''')
-
-# # Close cursor and commit changes to the database
-# cursor.close()
-# conn.commit()
-# ######################################################################
 
 name_gender_dict = {
   'محمد': 'male',
@@ -2088,19 +2045,16 @@ def check_for_anomalies(input_data: InputData) -> bool:
     # Additional checks for null values after processing can be added here
     return False
 
+# Dependency to check the password in the headers
+async def verify_password(x_password: str = Header(...)):
+    if x_password != "c2eab9ef017e81b9e2799f44824b7974697f72919d14dca6b4e68e8a7a6f5195":
+        raise HTTPException(status_code=400, detail="Invalid password")
 
 @app.post("/process-data/", response_model=OutputData)
-async def process_data(input_data: InputData):
-    # conn = sqlite3.connect('database.db')
-    # cursor = conn.cursor()
-
-    # # Insert input data into the input_data table
-    # cursor.execute('''
-    #     INSERT INTO input_data (name, email, phone, transfer_limit, nid)
-    #     VALUES (?, ?, ?, ?, ?)
-    # ''', (input_data.name, input_data.email, input_data.phone, input_data.transfer_limit, input_data.nid))
-
-    # conn.commit()
+async def process_data(input_data: InputData, x_password: str = Header(...)):
+    # This line checks the password
+    await verify_password(x_password)
+   
     # Classify type based on name
     type_ = classify_type(input_data.name)
     
@@ -2118,15 +2072,7 @@ async def process_data(input_data: InputData):
     if check_for_anomalies(input_data):
         anomaly_detected = True
 
-    # # Insert output data into the output_data table
-    # cursor.execute('''
-    #     INSERT INTO output_data (gender, type, birth_year, country, class_, anomaly)
-    #     VALUES (?, ?, ?, ?, ?, ?)
-    # ''', (gender, type_, birth_year, country, financial_class, anomaly_detected))
-
-    # conn.commit()
-    # cursor.close()
-    # conn.close()
+ 
 
     return OutputData(
         gender=gender,
