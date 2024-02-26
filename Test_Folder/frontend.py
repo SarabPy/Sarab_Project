@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 
-# Streamlit form for user inputting data
+# Streamlit form for user inputting
 st.title('Data Submission Form')
 
 with st.form("user_data_form"):
